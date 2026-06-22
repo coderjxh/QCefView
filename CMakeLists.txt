@@ -135,6 +135,8 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_compile_options(
     /W3
     /WX
+    /wd4819
+    /wd4018
     /M$<IF:$<BOOL:${STATIC_CRT}>,T,D>$<$<CONFIG:Debug>:d>
   )
   add_link_options(/DEBUG)

@@ -12,9 +12,8 @@
 # try to read from environment QTDIR
 if(NOT EXISTS ${QT_SDK_DIR})
   message(STATUS "QT_SDK_DIR not found, try to read from environment variable: QTDIR")
-  set(QT_SDK_DIR "$ENV{QTDIR}" CACHE STRING "QT_SDK_DIR read from environment variable: QTDIR" FORCE)
+  set(QT_SDK_DIR "C:/code.env/Qt5.14.2/5.14.2/msvc2017_64" CACHE STRING "QT_SDK_DIR read from environment variable: QTDIR" FORCE)
 endif()
-
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!NOTE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # You must make sure the target platform and architecture
 # of QT binaries math the ones of CEF binaries

@@ -14,6 +14,10 @@ CCefClientDelegate::onFileDialog(CefRefPtr<CefBrowser>& browser,
                                  const CefString& title,
                                  const CefString& default_file_path,
                                  const std::vector<CefString>& accept_filters,
+#if CEF_VERSION_MAJOR >= 126
+                                 const std::vector<CefString>& accept_extensions,
+                                 const std::vector<CefString>& accept_descriptions,
+#endif
 #if CEF_VERSION_MAJOR < 102
                                  int selected_accept_filter,
 #endif

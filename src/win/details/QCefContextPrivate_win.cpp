@@ -1,8 +1,6 @@
 ﻿#include "../../details/QCefContextPrivate.h"
 
-#define NO_SHLWAPI_ISOS
 #include <Shlwapi.h>
-#undef NO_SHLWAPI_ISOS
 
 #include <QDebug>
 #include <QDir>
