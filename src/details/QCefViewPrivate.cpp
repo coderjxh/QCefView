@@ -761,7 +761,6 @@ QCefViewPrivate::onFileDialog(const QCefFileDialogRequest& request,
   }
 
   // set accepted file types
-  QStringList nameFilters;
   const auto addPattern = [](QStringList& patterns, const QString& pattern) {
     auto p = pattern.trimmed();
     if (p.isEmpty()) {
@@ -776,57 +775,20 @@ QCefViewPrivate::onFileDialog(const QCefFileDialogRequest& request,
     }
   };
 
-  const int filterCount =
-    std::max({ request.acceptFilters.size(), request.acceptExtensions.size(), request.acceptDescriptions.size() });
-  for (int i = 0; i < filterCount; ++i) {
-    QStringList patterns;
-    const auto description = request.acceptDescriptions.value(i).trimmed();
-    const auto extensions = request.acceptExtensions.value(i).trimmed();
-    const auto filter = request.acceptFilters.value(i).trimmed();
-
-    if (!extensions.isEmpty()) {
-      for (const auto& item : extensions.split(';', Qt::SkipEmptyParts)) {
-        addPattern(patterns, item);
-      }
-    } else if (!filter.isEmpty()) {
-      if (filter.contains('/')) {
-        // MIME filters are passed through only when Qt can handle them directly.
-        dialog.setMimeTypeFilters(QStringList() << filter);
-        continue;
-      }
-      addPattern(patterns, filter);
+  QStringList patterns;
+  const auto appendPatternList = [&](const QStringList& source) {
+    for (const auto& item : source) {
+      addPattern(patterns, item);
     }
+  };
 
-    if (patterns.isEmpty()) {
-      continue;
-    }
+  appendPatternList(request.acceptFilters);
+  appendPatternList(request.acceptExtensions);
 
-    if (!description.isEmpty()) {
-      nameFilters << QString("%1 (%2)").arg(description, patterns.join(' '));
-    } else {
-      nameFilters << patterns.join(' ');
-    }
-  }
-
-  if (nameFilters.isEmpty() && !request.acceptFilters.isEmpty()) {
-    for (const auto& filter : request.acceptFilters) {
-      auto value = filter.trimmed();
-      if (!value.isEmpty()) {
-        if (value.contains('/')) {
-          dialog.setMimeTypeFilters(QStringList() << value);
-        } else {
-          QStringList patterns;
-          addPattern(patterns, value);
-          if (!patterns.isEmpty()) {
-            nameFilters << patterns.join(' ');
-          }
-        }
-      }
-    }
-  }
-
-  if (!nameFilters.isEmpty()) {
-    dialog.setNameFilters(nameFilters);
+  if (!patterns.isEmpty()) {
+    patterns.removeDuplicates();
+    const auto fileFilter = QStringLiteral("支持的文件格式 (%1)").arg(patterns.join(' '));
+    dialog.setNameFilter(fileFilter);
   }
 
   // execute the dialog
