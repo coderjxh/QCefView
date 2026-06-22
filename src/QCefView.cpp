@@ -333,6 +333,24 @@ QCefView::onNewPopup(const QCefFrameId& frameId,
   return false;
 }
 
+bool
+QCefView::onFileDialog(const QCefFileDialogRequest& request,
+                       const QSharedPointer<QCefFileDialogCallback>& callback)
+{
+#if defined(Q_OS_LINUX)
+  Q_D(QCefView);
+  if (!d) {
+    return false;
+  }
+
+  return d->onFileDialog(request, callback);
+#else
+  Q_UNUSED(request);
+  Q_UNUSED(callback);
+  return false;
+#endif
+}
+
 void
 QCefView::onNewDownloadItem(const QSharedPointer<QCefDownloadItem>& item, const QString& suggestedName)
 {

@@ -13,6 +13,8 @@
 
 #pragma region qt_headers
 #include <QSharedPointer>
+#include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QWidget>
 #include <QWindow>
@@ -22,6 +24,47 @@
 #include <QCefEvent.h>
 #include <QCefQuery.h>
 #include <QCefSetting.h>
+
+/// <summary>
+/// STL headers
+/// </summary>
+/// <summary>
+/// Represents the file dialog request
+/// </summary>
+class QCEFVIEW_EXPORT QCefFileDialogRequest
+{
+public:
+  enum Mode
+  {
+    Open,
+    OpenMultiple,
+    OpenFolder,
+    Save,
+  };
+
+  Mode mode = Open;
+  QString title;
+  QString defaultFilePath;
+  QStringList acceptFilters;
+  QStringList acceptExtensions;
+  QStringList acceptDescriptions;
+  int selectedAcceptFilter = -1;
+};
+
+Q_DECLARE_METATYPE(QCefFileDialogRequest)
+
+/// <summary>
+/// Represents the file dialog callback
+/// </summary>
+class QCEFVIEW_EXPORT QCefFileDialogCallback
+{
+public:
+  virtual ~QCefFileDialogCallback() = default;
+
+  virtual void continueWithFiles(const QStringList& filePaths) = 0;
+
+  virtual void cancel() = 0;
+};
 
 /// <summary>
 /// Type alias for CEF browser id
@@ -475,6 +518,18 @@ protected:
                           QCefSetting& settings,
                           bool& disableJavascriptAccess);
 
+public:
+  /// <summary>
+  /// Gets called when the browser requests a file dialog.
+  /// Return true to handle the dialog yourself; false to use the default CEF dialog.
+  /// </summary>
+  /// <param name="request">The file dialog request data</param>
+  /// <param name="callback">The file dialog callback</param>
+  /// <returns>True if handled; otherwise false</returns>
+  virtual bool onFileDialog(const QCefFileDialogRequest& request,
+                            const QSharedPointer<QCefFileDialogCallback>& callback);
+
+protected:
   /// <summary>
   /// Gets called on new download item was required. Keep reference to the download item
   /// and call <see cref="QCefDownloadItem::start"/> method to allow and start the download,

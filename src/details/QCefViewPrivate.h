@@ -146,6 +146,8 @@ public:
 
   QCefQuery createQuery(const QString& req, const int64_t id);
 
+  bool onFileDialog(const QCefFileDialogRequest& request, const QSharedPointer<QCefFileDialogCallback>& callback);
+
 protected:
   void onCefBrowserCreated(CefRefPtr<CefBrowser> browser, QWindow* window);
 
@@ -205,15 +207,6 @@ protected:
   void onRunCefContextMenu(QPoint pos, CefRefPtr<CefRunContextMenuCallback> callback);
 
   void onCefContextMenuDismissed();
-
-  void onFileDialog(CefBrowserHost::FileDialogMode mode,
-                    const QString& title,
-                    const QString& default_file_path,
-                    const QStringList& accept_filters,
-#if CEF_VERSION_MAJOR < 102
-                    int selected_accept_filter,
-#endif
-                    CefRefPtr<CefFileDialogCallback> callback);
 
   bool hasDevTools();
 

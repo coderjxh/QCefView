@@ -1,6 +1,7 @@
 ﻿#include "QCefViewPrivate.h"
 
 #pragma region stl_headers
+#include <algorithm>
 #include <stdexcept>
 #pragma endregion
 
@@ -721,68 +722,126 @@ QCefViewPrivate::onCefContextMenuDismissed()
   osr.contextMenuCallback_ = nullptr;
 }
 
-void
-QCefViewPrivate::onFileDialog(CefBrowserHost::FileDialogMode mode,
-                              const QString& title,
-                              const QString& default_file_path,
-                              const QStringList& accept_filters,
-#if CEF_VERSION_MAJOR < 102
-                              int selected_accept_filter,
-#endif
-                              CefRefPtr<CefFileDialogCallback> callback)
+bool
+QCefViewPrivate::onFileDialog(const QCefFileDialogRequest& request,
+                              const QSharedPointer<QCefFileDialogCallback>& callback)
 {
   Q_Q(QCefView);
   if (!q) {
-    return;
+    return false;
   }
 
   // create dialog and set mode
   QFileDialog dialog(q);
-  if (mode == FILE_DIALOG_OPEN) {
+  if (request.mode == QCefFileDialogRequest::Open) {
     dialog.setFileMode(QFileDialog::ExistingFile);
-  } else if (mode == FILE_DIALOG_OPEN_MULTIPLE) {
+  } else if (request.mode == QCefFileDialogRequest::OpenMultiple) {
     dialog.setFileMode(QFileDialog::ExistingFiles);
-  } else if (mode == FILE_DIALOG_OPEN_FOLDER) {
+  } else if (request.mode == QCefFileDialogRequest::OpenFolder) {
     dialog.setFileMode(QFileDialog::Directory);
-  } else if (mode == FILE_DIALOG_SAVE) {
+  } else if (request.mode == QCefFileDialogRequest::Save) {
     dialog.setAcceptMode(QFileDialog::AcceptSave);
   } else {
-    callback->Cancel();
-    return;
+    if (callback) {
+      callback->cancel();
+    }
+    return true;
   }
 
   // set title
-  if (!title.isEmpty()) {
-    dialog.setWindowTitle(title);
+  if (!request.title.isEmpty()) {
+    dialog.setWindowTitle(request.title);
   }
 
   // set initial folder
-  if (!default_file_path.isEmpty() && mode == FILE_DIALOG_SAVE) {
-    QFileInfo fileInfo(default_file_path);
+  if (!request.defaultFilePath.isEmpty() && request.mode == QCefFileDialogRequest::Save) {
+    QFileInfo fileInfo(request.defaultFilePath);
     dialog.setDirectory(fileInfo.dir());
     dialog.selectFile(fileInfo.fileName());
   }
 
   // set accepted file types
-  dialog.setNameFilters(accept_filters);
+  QStringList nameFilters;
+  const auto addPattern = [](QStringList& patterns, const QString& pattern) {
+    auto p = pattern.trimmed();
+    if (p.isEmpty()) {
+      return;
+    }
+    if (p.startsWith("*.") || p.startsWith("*")) {
+      patterns << p;
+    } else if (p.startsWith(".")) {
+      patterns << "*" + p;
+    } else {
+      patterns << "*." + p;
+    }
+  };
+
+  const int filterCount =
+    std::max({ request.acceptFilters.size(), request.acceptExtensions.size(), request.acceptDescriptions.size() });
+  for (int i = 0; i < filterCount; ++i) {
+    QStringList patterns;
+    const auto description = request.acceptDescriptions.value(i).trimmed();
+    const auto extensions = request.acceptExtensions.value(i).trimmed();
+    const auto filter = request.acceptFilters.value(i).trimmed();
+
+    if (!extensions.isEmpty()) {
+      for (const auto& item : extensions.split(';', Qt::SkipEmptyParts)) {
+        addPattern(patterns, item);
+      }
+    } else if (!filter.isEmpty()) {
+      if (filter.contains('/')) {
+        // MIME filters are passed through only when Qt can handle them directly.
+        dialog.setMimeTypeFilters(QStringList() << filter);
+        continue;
+      }
+      addPattern(patterns, filter);
+    }
+
+    if (patterns.isEmpty()) {
+      continue;
+    }
+
+    if (!description.isEmpty()) {
+      nameFilters << QString("%1 (%2)").arg(description, patterns.join(' '));
+    } else {
+      nameFilters << patterns.join(' ');
+    }
+  }
+
+  if (nameFilters.isEmpty() && !request.acceptFilters.isEmpty()) {
+    for (const auto& filter : request.acceptFilters) {
+      auto value = filter.trimmed();
+      if (!value.isEmpty()) {
+        if (value.contains('/')) {
+          dialog.setMimeTypeFilters(QStringList() << value);
+        } else {
+          QStringList patterns;
+          addPattern(patterns, value);
+          if (!patterns.isEmpty()) {
+            nameFilters << patterns.join(' ');
+          }
+        }
+      }
+    }
+  }
+
+  if (!nameFilters.isEmpty()) {
+    dialog.setNameFilters(nameFilters);
+  }
 
   // execute the dialog
   if (dialog.exec()) {
-    std::vector<CefString> file_paths;
     auto selected_files = dialog.selectedFiles();
-    for (const auto& file : selected_files) {
-      file_paths.push_back(QDir::toNativeSeparators(file).toStdString());
-    }
+    QStringList file_paths = selected_files;
 
-#if CEF_VERSION_MAJOR < 102
-    int index = accept_filters.indexOf(dialog.selectedNameFilter());
-    callback->Continue(index, file_paths);
-#else
-    callback->Continue(file_paths);
-#endif
-  } else {
-    callback->Cancel();
+    if (callback) {
+      callback->continueWithFiles(file_paths);
+    }
+  } else if (callback) {
+    callback->cancel();
   }
+
+  return true;
 }
 
 bool
