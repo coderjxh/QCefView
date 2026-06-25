@@ -17,19 +17,20 @@ QCefDownloadItem::start(const QString& path, bool useDefaultDialog) const
   if (d_ptr->isStarted)
     return;
 
+  d_ptr->beforeDownloadCallback->Continue(path.toStdString(), useDefaultDialog);
+  d_ptr->isStarted = true;
+  d_ptr->userPaused = false;
+
   if (d_ptr->downloadItemCallback) {
     d_ptr->downloadItemCallback->Resume();
   }
-
-  d_ptr->beforeDownloadCallback->Continue(path.toStdString(), useDefaultDialog);
-
-  d_ptr->isStarted = true;
 }
 
 void
 QCefDownloadItem::pause() const
 {
   Q_D(const QCefDownloadItem);
+  d_ptr->userPaused = true;
   d_ptr->downloadItemCallback->Pause();
 }
 
@@ -37,6 +38,7 @@ void
 QCefDownloadItem::resume() const
 {
   Q_D(const QCefDownloadItem);
+  d_ptr->userPaused = false;
   d_ptr->downloadItemCallback->Resume();
 }
 

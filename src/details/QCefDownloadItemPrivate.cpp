@@ -85,6 +85,13 @@ QCefDownloadItemPrivate::setDownloadItemCallback(QCefDownloadItem* item,
   p->downloadItemCallback = downloadItemCallback;
 }
 
+bool
+QCefDownloadItemPrivate::isUserPaused(QCefDownloadItem* item)
+{
+  auto p = item->d_ptr.data();
+  return p->userPaused;
+}
+
 void
 QCefDownloadItemPrivate::destroy(QCefDownloadItem* item)
 {

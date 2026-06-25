@@ -16,6 +16,7 @@ class QCefDownloadItemPrivate
 public:
   CCefClientDelegate::WeakPtr handler;
   bool isStarted = false;
+  bool userPaused = false;
 
   quint32 id = 0;
 
@@ -52,6 +53,8 @@ public:
                                         CefRefPtr<CefBeforeDownloadCallback> beforeDownloadCallback);
 
   static void setDownloadItemCallback(QCefDownloadItem* item, CefRefPtr<CefDownloadItemCallback> downloadItemCallback);
+
+  static bool isUserPaused(QCefDownloadItem* item);
 
   static void destroy(QCefDownloadItem* item);
 };
